@@ -6,7 +6,6 @@
 import numpy as np
 import random
 import math
-import timeit
 import time
 
 class ConvLayer:
