@@ -4,7 +4,6 @@
 
 # We need classes for: ConvLayer, PoolLayer, FlattenLayer, FCLayer, SoftMax/Output Layer
 import numpy as np
-import random
 import math
 import time
 
@@ -13,6 +12,8 @@ class ConvLayer:
     Class for a convolutional layer of a neural network.
     """
     def __init__(self, input, num_filters, filter_dim, pad = 0, stride = 1):
+        """ Initialises a convolutional layer."""
+
         self.p = pad
         self.f = filter_dim
         self.s = stride
@@ -21,12 +22,11 @@ class ConvLayer:
         self.W = np.random.random((self.f,self.f,self.input.shape[3],self.n_C))*0.01
         self.b = np.random.random((1,1,1,self.n_C))
         
-        """ Initialises a convolutional layer."""
     
-    def zero_pad(self):
+    def zero_pad(self, x, mode = "ADD"):
         """
-        Pad with zeros all images of the dataset X. The padding is applied to the 
-        height and width of an image.
+        Pad with zeros or unpad all images of the dataset X. The padding is applied
+        to / removed from the height and width of an image.
 
         Arguments:
         input -- the input to the ConvLayer from the previous layer.
@@ -34,9 +34,20 @@ class ConvLayer:
         Returns:
         Padded image of shape (m, n_H + 2 * pad, n_W + 2 * pad, n_C)
         """
-        pad_dims = ((0,0), (self.p,self.p), (self.p, self.p), (0,0))
-        self.input = np.pad(self.input, pad_dims) 
+        if self.p == 0:
+            return x
 
+        if mode == "ADD":
+            pad_dims = ((0,0), (self.p,self.p), (self.p, self.p), (0,0))
+            x = np.pad(x, pad_dims)
+            return x
+        elif mode == "REMOVE":
+            return x[:,self.p:-self.p,self.p:-self.p,:]
+        else: 
+            raise ValueError(f"Invalid mode: {mode}. Expected 'ADD' or 'REMOVE'.")  
+
+        
+        
     def single_conv(self, input_slice, current_f):
         """
         Perform one convolution step on a given slice and features.
@@ -49,11 +60,13 @@ class ConvLayer:
         Returns:
         Z -- a scalar, to be put into activation.
         """
-        Z = np.sum(np.multiply(input_slice, self.W[:,:,:,current_f]))
+        filter = self.W[:,:,:,current_f]
+        Z = np.sum(np.multiply(input_slice, filter))
         + float(self.b[:,:,:,current_f])
+
         return Z
     
-    def new_shape(self):
+    def new_shape(self, x):
         """
         Find the output shape, using the input shape.
 
@@ -61,11 +74,11 @@ class ConvLayer:
         out_h -- number of rows of layer output.
         out_w -- number of columns of layer output.
         """
-        out_h = math.floor((self.input.shape[1] + 2 * self.p - self.f)/self.s) + 1
-        out_w = math.floor((self.input.shape[2] + 2 * self.p - self.f)/self.s) + 1
+        out_h = math.floor((x.shape[1] + 2 * self.p - self.f)/self.s) + 1
+        out_w = math.floor((x.shape[2] + 2 * self.p - self.f)/self.s) + 1
         return [out_h, out_w]
     
-    def select_slice(self, i, j, k):
+    def select_slice(self, x, i, j, k):
         """
         Creates a slice of the input, ready to convolve with the filter.
         This prepares input for use in single_step function.
@@ -83,8 +96,7 @@ class ConvLayer:
         h2 = h1 + self.f
         w1 = k*self.s
         w2 = w1 + self.f
-        return self.input[i, h1:h2,w1:w2,:]
-        
+        return x[i, h1:h2,w1:w2,:]
 
     def forward(self):       
         """
@@ -94,25 +106,46 @@ class ConvLayer:
 
         """
         m = self.input.shape[0]
-        out_h, out_w = self.new_shape()
-        self.zero_pad()
+        x = self.input
+        out_h, out_w = self.new_shape(x)
+        x = self.zero_pad(x, mode = "ADD")
         Z = np.zeros((m,out_h,out_w, self.n_C))
         for i in range(m):
             for j in range(out_h):  
                 for k in range (out_w):
                     for l in range(self.n_C):
-                        Z[i,j,k,l] = self.single_conv(self.select_slice(i, j, k),l)
+                        Z[i,j,k,l] = self.single_conv(self.select_slice(x, i, j, k),l)
                         
         return Z
     
-    def backward(self):
+    def backward(self, dZ, alpha):
         """
         Perform a backward pass through one convolutional layer.
         """
-        dA = np.zeros(self.input.shape)
-        in_h, in_w = self.input.shape[0],self.input.shape[1]
+        m = self.input.shape[0]
+        dA_prev = np.zeros(self.input.shape)
+        dA_prev = self.zero_pad(dA_prev,mode="ADD")
+        dW = np.zeros(self.W.shape)
+        db = np.zeros(self.b.shape)
+        x = self.zero_pad(self.input,mode="ADD")
+        in_h, in_w = self.input.shape[1],self.input.shape[2]        
+        for i in range(m):
+            for j in range(in_h):  
+                for k in range (in_w):
+                    for l in range(self.n_C):
 
-        return 
+                        dA_prev_slice = self.select_slice(dA_prev,i,j,k)
+                        dA_prev_slice += self.W[:,:,:,l] * dZ[i,j,k,l]
+                        dW[:,:,:,l] += (self.select_slice(x,i,j,k))*dZ[i,j,k,l]
+                        db[:,:,:,l] += dZ[i,j,k,l]
+        
+        self.W -= dW * alpha
+        self.b -= db * alpha
+        self.zero_pad(dA_prev, mode = "REMOVE")
+
+            
+        
+        return dA_prev, dW, db
         
 
 class PoolLayer:
@@ -127,7 +160,7 @@ class PoolLayer:
 
     
     # Functions: forward, max, average, backward,
-    def select_slice(self, i, j, k, l):
+    def select_slice(self, x, i, j, k, l):
             """
             Creates a slice of the input, ready to convolve with the filter.
             This prepares input for use in single_step function.
@@ -158,6 +191,18 @@ class PoolLayer:
         out_h = math.floor((self.input.shape[1] - self.f)/self.s) + 1
         out_w = math.floor((self.input.shape[2] - self.f)/self.s) + 1
         return [out_h, out_w]
+    
+    def remove_pad(self):
+        """
+        Removes padding. 
+        Arguments:
+        input -- a padded activation.
+        
+        Returns:
+        The activation with no padding, p = 0
+        """
+        return 
+
         
         
 
@@ -181,7 +226,8 @@ class PoolLayer:
         
 
     def backward(self):
-        pass 
+        pass
+         
 
 class FlattenLayer:
     """
@@ -219,10 +265,12 @@ if __name__ == "__main__":
     # x = np.random.random((100,20,20,3))
     # convtest = ConvLayer(input=x,num_filters=3,filter_dim=3,pad=3,stride=1)
     # before = time.time()
-    # test = convtest.forward()
+    # test_z = convtest.forward()
+    # dA_prev,dW,db = convtest.backward(test_z,alpha=0.01)
     # after = time.time()
     # print(f"Time taken: {after - before}")
-    # print(test.shape)
+
+
 
     """POOL TESTING"""
     # x = np.random.random((1,3,3,3))
@@ -240,9 +288,9 @@ if __name__ == "__main__":
     # # print(f"Time taken: {after - before}")
 
     """FLATTEN TESTING"""
-    x = np.random.random((1,3,3,3))
-    flattest = FlattenLayer(input=x)
+    # x = np.random.random((1,3,3,3))
+    # flattest = FlattenLayer(input=x)
 
-    test = flattest.forward()
-    print(f"Input is {flattest.input}")
-    print(f"And output is {test}")
+    # test = flattest.forward()
+    # print(f"Input is {flattest.input}")
+    # print(f"And output is {test}")
