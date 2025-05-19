@@ -305,7 +305,7 @@ if __name__ == "__main__":
     # print(f"input starts as: {pooltest.input}")
 
     # print(f"And input has shape: {pooltest.input.shape}")
-    # # print(f"So, first dim: {pooltest.input.shape[0]}")
+    # print(f"So, first dim: {pooltest.input.shape[0]}")
 
     # before = time.time()
     # test = pooltest.forward()
