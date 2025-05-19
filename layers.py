@@ -250,8 +250,10 @@ class FCLayer:
     """
     Class for a fully connected layer of a neural network.
     """
-    def __init__(self):
-        pass
+    def __init__(self, input, ):
+        self.input = np.asarray(input, target_dim)
+        self.w = np.zeros((self.input.shape[0],target_dim))
+        self.b = np.zeros((self.input.shape[0]))
     
     def activate(z ,function = "relu"):
         functions = {
@@ -268,8 +270,9 @@ class FCLayer:
         return functions[function](z)
 
         
-    def forward(self):
-        pass
+    def forward(self, function):
+        z = np.dot(self.w,self.input)+self.b
+        self.activate(z, function)
         
     def backward(self):
         pass
