@@ -160,7 +160,7 @@ class PoolLayer:
 
     
     # Functions: forward, max, average, backward,
-    def select_slice(self, x, i, j, k, l):
+    def select_slice(self, i, j, k, l):
             """
             Creates a slice of the input, ready to convolve with the filter.
             This prepares input for use in single_step function.
@@ -250,6 +250,33 @@ class FCLayer:
     """
     Class for a fully connected layer of a neural network.
     """
+    def __init__(self):
+        pass
+    
+    def activate(z ,function = "relu"):
+        functions = {
+        "relu": lambda z: np.maximum(0, z),
+        "tanh": lambda z: np.tanh(z),
+        "sigmoid": lambda z: 1 / (1 + np.exp(-z)),
+        "linear": lambda z: z,
+        "leaky_relu": lambda z: np.maximum(0.1 * z, z)
+        }
+        if function not in functions:
+            raise ValueError(f"Invalid function: {function}. 
+                             Please inspect the permitted values.")
+                
+        return functions[function](z)
+
+        
+    def forward(self):
+        pass
+        
+    def backward(self):
+        pass
+
+
+        
+
     
 
 
@@ -262,7 +289,7 @@ class FCLayer:
 
 if __name__ == "__main__":
     """CONV TESTING"""
-    # x = np.random.random((100,20,20,3))
+    # x = np.random.random((1,192,192,3))
     # convtest = ConvLayer(input=x,num_filters=3,filter_dim=3,pad=3,stride=1)
     # before = time.time()
     # test_z = convtest.forward()
@@ -273,19 +300,19 @@ if __name__ == "__main__":
 
 
     """POOL TESTING"""
-    # x = np.random.random((1,3,3,3))
-    # pooltest = PoolLayer(input = x, stride = 2, filter_width=2, mode = "AVERAGE")
-    # print(f"input starts as: {pooltest.input}")
+    x = np.random.random((1,3,3,3))
+    pooltest = PoolLayer(input = x, stride = 2, filter_width=2, mode = "AVERAGE")
+    print(f"input starts as: {pooltest.input}")
 
-    # print(f"And input has shape: {pooltest.input.shape}")
-    # # print(f"So, first dim: {pooltest.input.shape[0]}")
+    print(f"And input has shape: {pooltest.input.shape}")
+    # print(f"So, first dim: {pooltest.input.shape[0]}")
 
-    # before = time.time()
-    # test = pooltest.forward()
-    # after = time.time()
-    # print(f"Our result is: {test}")
-    # print(f"Result has shape: {test.shape}")
-    # # print(f"Time taken: {after - before}")
+    before = time.time()
+    test = pooltest.forward()
+    after = time.time()
+    print(f"Our result is: {test}")
+    print(f"Result has shape: {test.shape}")
+    print(f"Time taken: {after - before}")
 
     """FLATTEN TESTING"""
     # x = np.random.random((1,3,3,3))
