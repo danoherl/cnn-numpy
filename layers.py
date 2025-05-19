@@ -300,19 +300,19 @@ if __name__ == "__main__":
 
 
     """POOL TESTING"""
-    x = np.random.random((1,3,3,3))
-    pooltest = PoolLayer(input = x, stride = 2, filter_width=2, mode = "AVERAGE")
-    print(f"input starts as: {pooltest.input}")
+    # x = np.random.random((1,3,3,3))
+    # pooltest = PoolLayer(input = x, stride = 2, filter_width=2, mode = "AVERAGE")
+    # print(f"input starts as: {pooltest.input}")
 
-    print(f"And input has shape: {pooltest.input.shape}")
-    # print(f"So, first dim: {pooltest.input.shape[0]}")
+    # print(f"And input has shape: {pooltest.input.shape}")
+    # # print(f"So, first dim: {pooltest.input.shape[0]}")
 
-    before = time.time()
-    test = pooltest.forward()
-    after = time.time()
-    print(f"Our result is: {test}")
-    print(f"Result has shape: {test.shape}")
-    print(f"Time taken: {after - before}")
+    # before = time.time()
+    # test = pooltest.forward()
+    # after = time.time()
+    # print(f"Our result is: {test}")
+    # print(f"Result has shape: {test.shape}")
+    # print(f"Time taken: {after - before}")
 
     """FLATTEN TESTING"""
     # x = np.random.random((1,3,3,3))
